@@ -1,470 +1,987 @@
 <!DOCTYPE html>
-<html lang="en" class="light">
+<html lang="en" class="dark scroll-smooth">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHOKU LABS | Autonomous Micro-Dining</title>
-    
+    <title>Shoku Labs — Autonomous Micro-Dining</title>
+
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- GSAP & ScrollTrigger -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
-    
-    <!-- Canvas Confetti for Jackpots -->
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-
-    <!-- Lenis Smooth Scroll -->
-    <script src="https://unpkg.com/@studio-freight/lenis@1.0.33/dist/lenis.min.js"></script>
 
     <style>
+        :root {
+            --apple-bg: #000000;
+            --apple-surface: #111113;
+            --apple-surface-2: #1d1d1f;
+            --apple-blue: #0071e3;
+            --apple-blue-hover: #0077ed;
+        }
+
         body {
-            background-color: #fbfbfd;
-            color: #1d1d1f;
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+            background-color: var(--apple-bg);
+            color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+            -webkit-font-smoothing: antialiased;
+            letter-spacing: -0.015em;
         }
-        .reel-blur {
-            filter: blur(4px);
-            transform: scale(0.95);
+
+        .apple-headline {
+            letter-spacing: -0.035em;
+            line-height: 1.04;
         }
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); }
-            50% { box-shadow: 0 0 40px rgba(245, 158, 11, 0.5); }
+
+        .metallic-text-burgundy {
+            background: linear-gradient(135deg, #f5f5f7 0%, #e5a3b0 48%, #9e3b50 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
-        .jackpot-glow {
-            animation: pulse-glow 1.5s infinite;
+
+        .metallic-text-glacier {
+            background: linear-gradient(135deg, #f5f5f7 0%, #bae6fd 50%, #38bdf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metallic-text-silver {
+            background: linear-gradient(135deg, #ffffff 0%, #d4d4d8 55%, #71717a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .metallic-text-black {
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 50%, #52525b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .chip-die {
+            background: radial-gradient(circle at 30% 25%, #2c2c30 0%, #0d0d0f 70%);
+            box-shadow:
+                inset 0 1px 1px rgba(255, 255, 255, 0.25),
+                inset 0 -2px 6px rgba(0, 0, 0, 0.9),
+                0 25px 60px rgba(0, 0, 0, 0.85);
+        }
+
+        .finish-ring {
+            transition: transform 0.25s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.25s ease;
+        }
+        .finish-ring.active {
+            transform: scale(1.15);
+            box-shadow: 0 0 0 2px #000000, 0 0 0 4px #f5f5f7;
         }
     </style>
 </head>
-<body class="overflow-x-hidden bg-[#fbfbfd]">
+<body class="overflow-x-hidden bg-black text-[#f5f5f7]">
 
-    <!-- NAVBAR -->
-    <nav class="fixed top-0 left-0 w-full z-50 backdrop-blur-md bg-white/70 border-b border-black/5 px-8 py-4 flex justify-between items-center">
-        <span class="text-xl font-bold tracking-tight text-neutral-900 flex items-center gap-2">
-            SHOKU LABS <span class="text-xs px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-bold">🎰 Lucky Gacha</span>
-        </span>
-        <button id="open-kiosk-modal" class="bg-neutral-900 text-white px-5 py-2 rounded-full text-sm font-medium hover:bg-neutral-800 transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer shadow-md">
-            Find Kiosk
-        </button>
-    </nav>
-
-    <!-- HERO SECTION -->
-    <section class="min-h-screen flex flex-col justify-center items-center text-center px-4 pt-20 relative overflow-hidden">
-        <div class="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-amber-200/30 via-orange-100/20 to-yellow-100/30 rounded-full blur-3xl -z-10 pointer-events-none"></div>
-
-        <span class="text-xs uppercase tracking-widest text-amber-600 font-bold mb-3 px-4 py-1.5 rounded-full bg-amber-50 border border-amber-200">Autonomous Micro-Dining Kiosk</span>
-        <h1 id="hero-title" class="text-6xl md:text-8xl font-bold tracking-tight max-w-4xl text-neutral-900">
-            Fresh Ramen.<br><span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-500 via-orange-500 to-red-500">Spin for Your Meal.</span>
-        </h1>
-        <p id="hero-sub" class="mt-6 text-xl text-neutral-500 max-w-xl font-normal">
-            Next-generation autonomous kitchen hubs. Test your luck on the SHOKU LABS Gacha machine to roll secret menu items and discounts.
-        </p>
-        <div id="hero-cta" class="mt-8 flex gap-4">
-            <a href="#gacha-section" class="inline-flex items-center text-sm font-medium text-white bg-neutral-900 px-7 py-3.5 rounded-full hover:bg-neutral-800 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 shadow-lg">
-                Spin Gacha Slot 🎰
-            </a>
-            <a href="#simulator" class="inline-flex items-center text-sm font-medium text-neutral-700 border border-neutral-200 bg-white/80 backdrop-blur-sm px-6 py-3.5 rounded-full hover:bg-neutral-50 transition-all duration-300 transform hover:-translate-y-0.5 active:scale-95 shadow-sm">
-                Tech Specs
-            </a>
-        </div>
-    </section>
-
-    <!-- GACHA SLOT MACHINE SECTION -->
-    <section id="gacha-section" class="py-20 flex items-center justify-center px-6">
-        <div class="w-full max-w-5xl bg-white border border-neutral-200/90 rounded-3xl p-6 md:p-12 shadow-2xl backdrop-blur-2xl">
-            
-            <div class="text-center max-w-xl mx-auto mb-10">
-                <span class="text-xs uppercase tracking-widest text-amber-600 font-bold px-3 py-1 bg-amber-50 rounded-full border border-amber-200">Randomized Recipe Generator</span>
-                <h2 class="text-3xl md:text-5xl font-bold mt-2 text-neutral-900">SHOKU LABS Lucky Slot</h2>
-                <p class="text-neutral-500 text-sm mt-2">Pull the lever to roll a custom bowl combination. Hit 3 matching rarities to trigger a Legendary Jackpot Voucher!</p>
+    <!-- STICKY PRODUCT SUB-NAVBAR -->
+    <header class="sticky top-0 z-50 backdrop-blur-xl bg-black/75 border-b border-white/[0.08]">
+        <div class="max-w-6xl mx-auto px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <a href="#" class="text-lg font-semibold tracking-tight text-white">Shoku Labs</a>
             </div>
 
-            <!-- SLOT MACHINE CONTAINER -->
-            <div id="slot-machine-box" class="bg-gradient-to-b from-neutral-900 via-neutral-900 to-black rounded-3xl p-6 md:p-10 shadow-2xl border border-neutral-800 transition-all duration-500">
+            <div class="flex items-center gap-6 text-xs">
+                <a href="#highlights" class="hidden md:inline text-neutral-300 hover:text-white transition-colors">Overview</a>
+                <a href="#finishes" class="hidden md:inline text-neutral-300 hover:text-white transition-colors">Design</a>
+                <a href="#thermal-core" class="hidden md:inline text-neutral-300 hover:text-white transition-colors">Thermal Core</a>
+                <a href="#compare" class="hidden md:inline text-neutral-300 hover:text-white transition-colors">Tech Specs</a>
+                <button id="open-kiosk-modal" class="text-neutral-300 hover:text-white transition-colors cursor-pointer">Live Hubs</button>
+                <a href="#deploy" class="bg-[#0071e3] hover:bg-[#0077ed] text-white font-medium px-3.5 py-1.5 rounded-full transition-all">
+                    Deploy
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 1. HERO SECTION WITH RECURRING VIDEO / GIF STAGE -->
+    <section class="relative min-h-[92vh] flex flex-col items-center justify-between pt-14 pb-16 px-6 overflow-hidden">
+        <!-- Ambient Radial Finish Glow -->
+        <div id="hero-ambient-glow" class="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[720px] h-[440px] rounded-full blur-[130px] opacity-35 pointer-events-none transition-colors duration-700" style="background: #881337;"></div>
+
+        <div class="text-center z-10 max-w-4xl mx-auto">
+            <p class="hero-stagger text-sm md:text-base font-semibold tracking-wide text-[#e5a3b0] mb-2" id="hero-eyebrow">
+                Shoku Labs
+            </p>
+            <h1 id="hero-headline" class="hero-stagger apple-headline text-5xl sm:text-7xl md:text-[84px] font-semibold metallic-text-burgundy">
+                Thermal perfection.
+            </h1>
+            <p class="hero-stagger mt-4 text-lg md:text-2xl text-neutral-400 font-normal max-w-2xl mx-auto">
+                Forged in anodized aluminum. Powered by dual-zone induction. Hot, chef-crafted meals in 90 seconds flat.
+            </p>
+        </div>
+
+        <!-- Hero Video / GIF Showcase Container -->
+        <div class="hero-stagger relative w-full max-w-4xl my-7 flex flex-col items-center">
+            <div class="relative w-full h-[360px] md:h-[460px] rounded-[28px] overflow-hidden border border-white/10 bg-[#0a0a0c] shadow-2xl flex items-center justify-center">
                 
-                <!-- REELS GRID -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                    
-                    <!-- REEL 1: BROTH -->
-                    <div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[180px] shadow-inner">
-                        <span class="text-[10px] uppercase tracking-widest text-neutral-500 font-bold mb-2">Reel 1: Broth</span>
-                        <div id="reel-1-icon" class="text-5xl mb-2 transition-all duration-150">🍜</div>
-                        <div id="reel-1-name" class="font-bold text-white text-base">Tonkotsu Pork</div>
-                        <span id="reel-1-tag" class="text-[10px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full mt-2 font-mono border border-emerald-800/50">COMMON</span>
-                    </div>
+                <!-- Looping MP4/WebM Video (automatically plays /static/hero.mp4 if present) -->
+                <video id="hero-video" src="/static/hero.mp4" autoplay loop muted playsinline class="w-full h-full object-cover hidden"></video>
 
-                    <!-- REEL 2: PROTEIN -->
-                    <div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[180px] shadow-inner">
-                        <span class="text-[10px] uppercase tracking-widest text-neutral-500 font-bold mb-2">Reel 2: Protein</span>
-                        <div id="reel-2-icon" class="text-5xl mb-2 transition-all duration-150">🥩</div>
-                        <div id="reel-2-name" class="font-bold text-white text-base">Chashu Pork</div>
-                        <span id="reel-2-tag" class="text-[10px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full mt-2 font-mono border border-emerald-800/50">COMMON</span>
-                    </div>
+                <!-- Looping GIF (automatically plays /static/hero.gif if present) -->
+                <img id="hero-gif" alt="Shoku Labs Autonomous Kiosk" class="w-full h-full object-cover hidden" />
 
-                    <!-- REEL 3: SECRET ITEM -->
-                    <div class="bg-neutral-950 border border-neutral-800 rounded-2xl p-6 text-center relative overflow-hidden flex flex-col items-center justify-center min-h-[180px] shadow-inner">
-                        <span class="text-[10px] uppercase tracking-widest text-neutral-500 font-bold mb-2">Reel 3: Secret Bonus</span>
-                        <div id="reel-3-icon" class="text-5xl mb-2 transition-all duration-150">🥚</div>
-                        <div id="reel-3-name" class="font-bold text-white text-base">Ajitama Egg</div>
-                        <span id="reel-3-tag" class="text-[10px] text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded-full mt-2 font-mono border border-emerald-800/50">COMMON</span>
-                    </div>
+                <!-- Fallback Interactive Studio Render (shown until a video or GIF is loaded) -->
+                <canvas id="hero-kiosk-canvas" class="w-full h-full block"></canvas>
 
-                </div>
-
-                <!-- CONTROLS & STATS BAR -->
-                <div class="bg-neutral-900/90 border border-neutral-800 rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center gap-6">
-                    
-                    <div class="text-left w-full md:w-auto">
-                        <div class="text-xs text-neutral-400 uppercase font-semibold">Rolled Combination:</div>
-                        <div id="gacha-combo-title" class="text-xl font-bold text-white mt-0.5">Classic Tonkotsu Combo</div>
-                        <div class="flex items-center gap-4 mt-2 text-xs font-mono text-neutral-400">
-                            <span>Price: <strong id="gacha-price" class="text-emerald-400 text-sm">$13.50</strong></span>
-                            <span>Prep Time: <strong id="gacha-time" class="text-white">90s</strong></span>
-                            <span>Rarity Tier: <strong id="gacha-rarity-tier" class="text-amber-400">STANDARD ROLL</strong></span>
-                        </div>
-                    </div>
-
-                    <button id="spin-btn" class="w-full md:w-auto bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-black px-10 py-4 rounded-2xl font-extrabold text-base transition-all duration-200 transform hover:scale-105 active:scale-95 shadow-lg shadow-amber-500/20 cursor-pointer flex items-center justify-center gap-2">
-                        <span>SPIN GACHA</span>
-                        <span class="text-xl">🎰</span>
-                    </button>
-
-                </div>
-
+                <!-- Subtle Live Preview Loader Button -->
+                <label for="hero-media-upload" class="absolute bottom-4 right-4 z-20 bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/15 text-neutral-300 hover:text-white text-[11px] font-medium px-3.5 py-1.5 rounded-full cursor-pointer transition-all">
+                    + Load Video / GIF
+                </label>
+                <input id="hero-media-upload" type="file" accept="video/*,image/gif" class="hidden" />
             </div>
-
         </div>
-    </section>
 
-    <!-- FEATURE 1: 90-SECOND HEATING SIMULATOR -->
-    <section id="simulator" class="py-20 flex items-center justify-center px-6">
-        <div class="reveal-card w-full max-w-4xl bg-white border border-neutral-200/80 rounded-3xl p-8 md:p-12 shadow-xl backdrop-blur-xl">
-            <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <div>
-                    <span class="text-xs uppercase tracking-widest text-amber-600 font-bold px-3 py-1 bg-amber-50 rounded-full border border-amber-200">Dual-Zone Precision</span>
-                    <h2 class="text-3xl md:text-5xl font-bold mt-2 text-neutral-900">90-Second Heating Cycle</h2>
-                </div>
-                <button id="start-sim-btn" class="bg-neutral-900 text-white px-6 py-3 rounded-full font-semibold hover:bg-neutral-800 transition-all duration-300 transform hover:scale-105 active:scale-95 cursor-pointer shadow-md">
-                    Start Simulation
-                </button>
+        <!-- Hero Bottom Action Bar -->
+        <div class="hero-stagger z-10 flex flex-col items-center gap-3 text-center">
+            <div class="flex items-center gap-4">
+                <a href="#deploy" class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm md:text-base font-medium px-7 py-3 rounded-full transition-all transform hover:scale-[1.02] active:scale-95">
+                    Request Deployment
+                </a>
+                <a href="#finishes" class="text-[#2997ff] hover:underline text-sm md:text-base font-medium flex items-center gap-1">
+                    Explore finishes <span aria-hidden="true">›</span>
+                </a>
             </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <div class="bg-neutral-50 border border-neutral-200/60 rounded-2xl p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="font-semibold text-neutral-800">Zone A: Rich Broth</span>
-                        <span id="broth-temp" class="text-xs font-mono font-bold text-amber-600">72°F</span>
-                    </div>
-                    <div class="w-full bg-neutral-200 rounded-full h-3 overflow-hidden">
-                        <div id="broth-bar" class="bg-gradient-to-r from-amber-500 to-orange-500 h-full w-0 transition-all duration-300"></div>
-                    </div>
-                    <p class="text-xs text-neutral-400 mt-3">Target: 195°F • Continuous induction boil</p>
-                </div>
-
-                <div class="bg-neutral-50 border border-neutral-200/60 rounded-2xl p-6">
-                    <div class="flex justify-between items-center mb-4">
-                        <span class="font-semibold text-neutral-800">Zone B: Steamed Proteins</span>
-                        <span id="protein-temp" class="text-xs font-mono font-bold text-amber-600">72°F</span>
-                    </div>
-                    <div class="w-full bg-neutral-200 rounded-full h-3 overflow-hidden">
-                        <div id="protein-bar" class="bg-gradient-to-r from-amber-500 to-orange-500 h-full w-0 transition-all duration-300"></div>
-                    </div>
-                    <p class="text-xs text-neutral-400 mt-3">Target: 165°F • Precision steam vapor phase</p>
-                </div>
-            </div>
-
-            <p id="sim-status" class="text-center text-sm text-neutral-500 mt-8 font-mono">
-                Status: Ready for ordering sequence.
+            <p class="text-xs md:text-sm text-neutral-500">
+                Zero upfront CAPEX for qualified campuses and corporate hubs.
             </p>
         </div>
     </section>
 
-    <!-- SIGNATURE MENU SHOWCASE -->
-    <section class="py-20 flex flex-col justify-center items-center px-6">
-        <div class="text-center max-w-2xl mb-12">
-            <span class="text-xs uppercase tracking-widest text-amber-600 font-bold px-3 py-1 bg-amber-50 rounded-full border border-amber-200">Chef Designed</span>
-            <h2 class="text-4xl md:text-5xl font-bold mt-2 text-neutral-900">Signature Bowls</h2>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-8 w-full max-w-6xl">
-            <div class="reveal-card bg-white border border-neutral-200/80 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div class="text-xs font-mono text-amber-600 font-bold mb-2">READY IN 90s</div>
-                <h3 class="text-2xl font-bold mb-2 text-neutral-900">Tonkotsu Ramen</h3>
-                <p class="text-neutral-500 text-sm mb-6">Slow-simmered pork bone broth, thin noodles, chashu pork, and ajitama egg.</p>
-                <div class="flex justify-between items-center border-t border-neutral-100 pt-4">
-                    <span class="text-xl font-bold text-neutral-900">$12.50</span>
-                    <span class="text-xs bg-amber-50 text-amber-700 font-semibold px-3 py-1 rounded-full border border-amber-200">Popular</span>
-                </div>
+    <!-- 2. "GET THE HIGHLIGHTS." CAROUSEL -->
+    <section id="highlights" class="py-24 bg-[#111113] border-t border-white/[0.06]">
+        <div class="max-w-6xl mx-auto px-6 mb-12 flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+                <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white">Get the highlights.</h2>
             </div>
-
-            <div class="reveal-card bg-white border border-neutral-200/80 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div class="text-xs font-mono text-amber-600 font-bold mb-2">READY IN 90s</div>
-                <h3 class="text-2xl font-bold mb-2 text-neutral-900">Wagyu Sukiyaki</h3>
-                <p class="text-neutral-500 text-sm mb-6">Thinly sliced Wagyu, sweet soy dashi, seared tofu, konjac noodles, and greens.</p>
-                <div class="flex justify-between items-center border-t border-neutral-100 pt-4">
-                    <span class="text-xl font-bold text-neutral-900">$14.00</span>
-                    <span class="text-xs bg-orange-50 text-orange-700 font-semibold px-3 py-1 rounded-full border border-orange-200">Chef Special</span>
-                </div>
-            </div>
-
-            <div class="reveal-card bg-white border border-neutral-200/80 rounded-3xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                <div class="text-xs font-mono text-amber-600 font-bold mb-2">READY IN 105s</div>
-                <h3 class="text-2xl font-bold mb-2 text-neutral-900">Spicy Dan Dan</h3>
-                <p class="text-neutral-500 text-sm mb-6">Sichuan pepper minced pork, preserved greens, sesame chili broth, and scallions.</p>
-                <div class="flex justify-between items-center border-t border-neutral-100 pt-4">
-                    <span class="text-xl font-bold text-neutral-900">$11.75</span>
-                    <span class="text-xs bg-red-50 text-red-600 font-semibold px-3 py-1 rounded-full border border-red-200">Spicy 🔥</span>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- HOST LEAD FORM -->
-    <section class="py-20 flex items-center justify-center px-6">
-        <div class="reveal-card w-full max-w-4xl bg-white border border-neutral-200/80 rounded-3xl p-8 md:p-12 shadow-xl">
-            <div class="max-w-xl mx-auto text-center mb-8">
-                <span class="text-xs uppercase tracking-widest text-amber-600 font-bold px-3 py-1 bg-amber-50 rounded-full border border-amber-200">Host Partnership</span>
-                <h2 class="text-3xl md:text-5xl font-bold mt-2 text-neutral-900">Bring SHOKU LABSto Your Facility</h2>
-                <p class="text-neutral-500 text-sm mt-2">Zero upfront CAPEX. Autonomous turnkey dining for corporate campuses and universities.</p>
-            </div>
-
-            <form id="kiosk-request-form" class="max-w-xl mx-auto space-y-4">
-                <div>
-                    <label class="block text-xs uppercase tracking-wider text-neutral-500 mb-2 font-semibold">Campus or Organization Name</label>
-                    <input id="form-org" type="text" required placeholder="e.g. Irvine Innovation Center" class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:border-amber-500 transition-all duration-300">
-                </div>
-
-                <div>
-                    <label class="block text-xs uppercase tracking-wider text-neutral-500 mb-2 font-semibold">Estimated Daily Foot Traffic</label>
-                    <select id="form-traffic" class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:border-amber-500 transition-all duration-300 cursor-pointer">
-                        <option value="500 - 2,000 daily">500 - 2,000 daily visitors</option>
-                        <option value="2,000 - 10,000 daily">2,000 - 10,000 daily visitors</option>
-                        <option value="10,000+ daily">10,000+ daily visitors (High Volume)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="block text-xs uppercase tracking-wider text-neutral-500 mb-2 font-semibold">Contact Email</label>
-                    <input id="form-email" type="email" required placeholder="facilities@company.com" class="w-full bg-neutral-50 border border-neutral-200 rounded-xl px-4 py-3 text-sm text-neutral-900 focus:outline-none focus:border-amber-500 transition-all duration-300">
-                </div>
-
-                <button type="submit" class="w-full bg-neutral-900 text-white py-4 rounded-xl font-bold hover:bg-neutral-800 transition-all duration-300 transform active:scale-95 text-sm cursor-pointer shadow-md">
-                    Submit Kiosk Deployment Request
+            <div class="flex items-center gap-3">
+                <button id="hl-prev" aria-label="Previous highlight" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
+                    ‹
                 </button>
+                <button id="hl-next" aria-label="Next highlight" class="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors cursor-pointer">
+                    ›
+                </button>
+            </div>
+        </div>
 
-                <p id="form-response-msg" class="text-center text-xs text-amber-600 font-mono hidden mt-4"></p>
-            </form>
+        <!-- Horizontal Scroll Track -->
+        <div id="highlights-track" class="no-scrollbar flex gap-6 overflow-x-auto px-6 md:px-[max(1.5rem,calc((100vw-72rem)/2))] snap-x snap-mandatory scroll-smooth">
+            
+            <!-- Card 1 -->
+            <div class="snap-center shrink-0 w-[85vw] md:w-[680px] h-[440px] rounded-[28px] bg-black border border-white/10 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-rose-900/25 blur-3xl group-hover:bg-rose-800/35 transition-all"></div>
+                <div class="z-10 max-w-md">
+                    <p class="text-xs uppercase tracking-widest text-rose-400 font-semibold mb-2">Unibody Architecture</p>
+                    <h3 class="text-2xl md:text-3xl font-semibold text-white leading-snug">
+                        Aerospace-grade aluminum unibody. Built for 24/7 high-density foot traffic.
+                    </h3>
+                </div>
+                <div class="z-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">24 sq ft</div>
+                        <div class="text-xs text-neutral-400 mt-1">Compact footprint</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">0</div>
+                        <div class="text-xs text-neutral-400 mt-1">External hood vents</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">IP65</div>
+                        <div class="text-xs text-neutral-400 mt-1">Sealed food bay</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2 -->
+            <div class="snap-center shrink-0 w-[85vw] md:w-[680px] h-[440px] rounded-[28px] bg-black border border-white/10 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-sky-900/25 blur-3xl group-hover:bg-sky-800/35 transition-all"></div>
+                <div class="z-10 max-w-md">
+                    <p class="text-xs uppercase tracking-widest text-sky-400 font-semibold mb-2">Dual-Zone Induction</p>
+                    <h3 class="text-2xl md:text-3xl font-semibold text-white leading-snug">
+                        3.5kW dual-zone magnetic coils bring rich broth to 195°F in 90 seconds.
+                    </h3>
+                </div>
+                <div class="z-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">90 sec</div>
+                        <div class="text-xs text-neutral-400 mt-1">Cold-to-serve cycle</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">±0.5°F</div>
+                        <div class="text-xs text-neutral-400 mt-1">Thermal precision</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">40%</div>
+                        <div class="text-xs text-neutral-400 mt-1">Faster coil recovery</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 3 -->
+            <div class="snap-center shrink-0 w-[85vw] md:w-[680px] h-[440px] rounded-[28px] bg-black border border-white/10 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-amber-900/20 blur-3xl group-hover:bg-amber-800/30 transition-all"></div>
+                <div class="z-10 max-w-md">
+                    <p class="text-xs uppercase tracking-widest text-amber-400 font-semibold mb-2">Variable-Steam Aperture</p>
+                    <h3 class="text-2xl md:text-3xl font-semibold text-white leading-snug">
+                        Six laser-cut stainless blades modulate steam pressure so Wagyu and noodles never overcook.
+                    </h3>
+                </div>
+                <div class="z-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">6-Blade</div>
+                        <div class="text-xs text-neutral-400 mt-1">Mechanical aperture</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">165°F</div>
+                        <div class="text-xs text-neutral-400 mt-1">Gentle protein steam</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">254 nm</div>
+                        <div class="text-xs text-neutral-400 mt-1">Post-cycle UV-C purge</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 4 -->
+            <div class="snap-center shrink-0 w-[85vw] md:w-[680px] h-[440px] rounded-[28px] bg-black border border-white/10 p-8 md:p-12 flex flex-col justify-between relative overflow-hidden group">
+                <div class="absolute -right-16 -bottom-16 w-80 h-80 rounded-full bg-emerald-900/20 blur-3xl group-hover:bg-emerald-800/30 transition-all"></div>
+                <div class="z-10 max-w-md">
+                    <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-2">Tanpin Kanri AI</p>
+                    <h3 class="text-2xl md:text-3xl font-semibold text-white leading-snug">
+                        On-device neural demand forecasting stocks every hub before peak rush hits.
+                    </h3>
+                </div>
+                <div class="z-10 grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">0.4%</div>
+                        <div class="text-xs text-neutral-400 mt-1">Food waste rate</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">140</div>
+                        <div class="text-xs text-neutral-400 mt-1">Chilled bowl capacity</div>
+                    </div>
+                    <div>
+                        <div class="text-2xl md:text-3xl font-semibold text-white">24/7</div>
+                        <div class="text-xs text-neutral-400 mt-1">Autonomous telemetry</div>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </section>
 
-    <!-- LOCATION MODAL -->
-    <div id="kiosk-modal" class="fixed inset-0 bg-black/40 backdrop-blur-md z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 scale-95">
-        <div class="bg-white border border-neutral-200 w-full max-w-lg rounded-3xl p-8 shadow-2xl relative">
-            <button id="close-kiosk-modal" class="absolute top-6 right-6 text-neutral-400 hover:text-neutral-900 text-xl font-bold cursor-pointer">✕</button>
-            <h3 class="text-2xl font-bold mb-1 text-neutral-900">Active Kiosk Hubs</h3>
-            <p class="text-neutral-500 text-sm mb-6">Real-time stock and status across live deployment sites.</p>
+    <!-- 3. "TAKE A CLOSER LOOK." INTERACTIVE FINISH & X-RAY SWITCHER -->
+    <section id="finishes" class="py-28 px-6 bg-black relative">
+        <div class="max-w-6xl mx-auto">
+            <div class="mb-12">
+                <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white">Take a closer look.</h2>
+                <p class="text-neutral-400 text-lg md:text-xl mt-3 max-w-2xl">
+                    Four architectural finishes engineered to blend into luxury corporate lobbies, university unions, and international terminals.
+                </p>
+            </div>
 
-            <div class="space-y-4">
-                <div class="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 flex justify-between items-center">
-                    <div>
-                        <div class="font-bold text-neutral-900">CSUF Student Union</div>
-                        <div class="text-xs text-neutral-400">Hub #01 • Open 24/7</div>
-                    </div>
-                    <span class="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-200 font-semibold">Stocked (94%)</span>
+            <!-- Interactive Studio Viewport -->
+            <div class="relative w-full h-[500px] md:h-[580px] rounded-[32px] bg-[#111113] border border-white/10 overflow-hidden flex flex-col items-center justify-between p-6 md:p-10">
+                
+                <!-- Top View Mode Toggle (Exterior vs Internal X-Ray) -->
+                <div class="z-10 flex items-center gap-1 bg-black/70 backdrop-blur-md border border-white/10 p-1 rounded-full">
+                    <button id="view-exterior-btn" class="px-4 py-1.5 rounded-full text-xs font-medium bg-white text-black transition-all cursor-pointer">
+                        Anodized Exterior
+                    </button>
+                    <button id="view-xray-btn" class="px-4 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white transition-all cursor-pointer">
+                        Internal Architecture (X-Ray)
+                    </button>
                 </div>
 
-                <div class="bg-neutral-50 border border-neutral-200 rounded-2xl p-4 flex justify-between items-center">
-                    <div>
-                        <div class="font-bold text-neutral-900">Irvine Spectrum Tech Hub</div>
-                        <div class="text-xs text-neutral-400">Hub #02 • Open 24/7</div>
+                <!-- Interactive Finish / Cutaway Canvas -->
+                <canvas id="closer-look-canvas" class="w-full h-[350px] md:h-[410px] block"></canvas>
+
+                <!-- Floating Finish Selector Dock -->
+                <div class="z-10 flex flex-col items-center gap-3">
+                    <p id="finish-label" class="text-xs font-medium text-neutral-300 tracking-wide">
+                        Shoku Labs in <span class="text-white font-semibold">Burgundy</span>
+                    </p>
+                    <div class="flex items-center gap-4 bg-[#1d1d1f]/90 backdrop-blur-xl border border-white/15 px-5 py-3 rounded-full shadow-2xl">
+                        <button class="finish-btn finish-ring active w-7 h-7 rounded-full cursor-pointer" data-finish="burgundy" title="Burgundy" style="background: radial-gradient(circle at 30% 30%, #9f3a50, #4a1521);"></button>
+                        <button class="finish-btn finish-ring w-7 h-7 rounded-full cursor-pointer" data-finish="glacier" title="Glacier" style="background: radial-gradient(circle at 30% 30%, #bae6fd, #5b8fa8);"></button>
+                        <button class="finish-btn finish-ring w-7 h-7 rounded-full cursor-pointer" data-finish="silver" title="Silver" style="background: radial-gradient(circle at 30% 30%, #f4f4f5, #8e8e93);"></button>
+                        <button class="finish-btn finish-ring w-7 h-7 rounded-full cursor-pointer" data-finish="black" title="Black" style="background: radial-gradient(circle at 30% 30%, #3a3a3c, #111113);"></button>
                     </div>
-                    <span class="text-xs bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-200 font-semibold">Stocked (88%)</span>
+                </div>
+            </div>
+
+            <!-- Interactive '+' Feature Pills -->
+            <div class="mt-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="spec-pill bg-[#111113] border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-white/25 transition-all" onclick="toggleSpecPill(this)">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-white">Ceramic Shield Glass</span>
+                        <span class="pill-icon w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-sm text-white transition-transform">+</span>
+                    </div>
+                    <p class="pill-body hidden text-xs text-neutral-400 mt-3 leading-relaxed">
+                        Anti-reflective oleophobic touchscreen front with 3,000 nits peak outdoor visibility and fingerprint-resistant coating.
+                    </p>
+                </div>
+
+                <div class="spec-pill bg-[#111113] border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-white/25 transition-all" onclick="toggleSpecPill(this)">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-white">6-Axis Robotic Arm</span>
+                        <span class="pill-icon w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-sm text-white transition-transform">+</span>
+                    </div>
+                    <p class="pill-body hidden text-xs text-neutral-400 mt-3 leading-relaxed">
+                        Sub-millimeter pick-and-place kinematics transfer sealed bowls from cold vault to induction bay in 4.2 seconds.
+                    </p>
+                </div>
+
+                <div class="spec-pill bg-[#111113] border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-white/25 transition-all" onclick="toggleSpecPill(this)">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-white">UV-C &amp; Steam Purge</span>
+                        <span class="pill-icon w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-sm text-white transition-transform">+</span>
+                    </div>
+                    <p class="pill-body hidden text-xs text-neutral-400 mt-3 leading-relaxed">
+                        Automated 254nm UV-C sanitization sweep sterilizes the pickup chamber between every guest order without chemicals.
+                    </p>
+                </div>
+
+                <div class="spec-pill bg-[#111113] border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-white/25 transition-all" onclick="toggleSpecPill(this)">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-semibold text-white">36°F Thermal Cold Vault</span>
+                        <span class="pill-icon w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-sm text-white transition-transform">+</span>
+                    </div>
+                    <p class="pill-body hidden text-xs text-neutral-400 mt-3 leading-relaxed">
+                        Independent humidity chambers keep fresh alkaline noodles, broths, and proteins at peak crispness for up to 72 hours.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. THERMAL CORE & LIVE 90s BENCHMARK -->
+    <section id="thermal-core" class="py-28 px-6 bg-[#111113] border-t border-white/[0.06]">
+        <div class="max-w-5xl mx-auto">
+            <div class="flex flex-col md:flex-row items-start md:items-center gap-8 mb-14">
+                <!-- Induction Core Badge -->
+                <div class="chip-die w-28 h-28 rounded-3xl border border-white/20 flex flex-col items-center justify-center shrink-0">
+                    <span class="text-[10px] tracking-widest text-neutral-400 uppercase font-semibold">Shoku Labs</span>
+                    <span class="text-2xl font-bold tracking-tight text-white mt-0.5">3.5kW</span>
+                    <span class="text-[10px] tracking-widest text-[#e5a3b0] uppercase font-bold">INDUCTION</span>
+                </div>
+
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-[#e5a3b0] font-semibold mb-2">Thermal Architecture</p>
+                    <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white">
+                        Raw thermal velocity.<br><span class="text-neutral-500">90 seconds from cold to boil.</span>
+                    </h2>
+                </div>
+            </div>
+
+            <!-- Interactive Thermal Run Benchmark Card -->
+            <div class="bg-black border border-white/10 rounded-[28px] p-8 md:p-10">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-8 border-b border-white/10">
+                    <div>
+                        <h3 class="text-xl font-semibold text-white">Live Dual-Zone Induction Telemetry</h3>
+                        <p class="text-sm text-neutral-400 mt-1">Simulate a full cold-start thermal ramp across Broth (Zone A) and Protein Steam (Zone B).</p>
+                    </div>
+                    <button id="start-sim-btn" class="bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium px-6 py-3 rounded-full transition-all cursor-pointer shrink-0">
+                        Run 90s Thermal Cycle
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-neutral-300 font-medium">Zone A — Rich Broth Induction</span>
+                            <span id="broth-temp" class="font-mono text-white font-semibold">38°F</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-neutral-900 rounded-full overflow-hidden">
+                            <div id="broth-bar" class="h-full w-0 rounded-full bg-gradient-to-r from-[#9f3a50] to-[#f43f5e] transition-all duration-150"></div>
+                        </div>
+                        <p class="text-xs text-neutral-500 mt-2">Target: 195°F rolling boil • Magnetic field confinement</p>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-neutral-300 font-medium">Zone B — Variable-Aperture Steam</span>
+                            <span id="protein-temp" class="font-mono text-white font-semibold">38°F</span>
+                        </div>
+                        <div class="w-full h-2.5 bg-neutral-900 rounded-full overflow-hidden">
+                            <div id="protein-bar" class="h-full w-0 rounded-full bg-gradient-to-r from-[#38bdf8] to-[#818cf8] transition-all duration-150"></div>
+                        </div>
+                        <p class="text-xs text-neutral-500 mt-2">Target: 165°F vapor phase • Preserves tender texture</p>
+                    </div>
+                </div>
+
+                <div class="mt-8 pt-6 border-t border-white/10 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs font-mono text-neutral-400">
+                    <span id="sim-status">IDLE — Ready for cold-vault bowl transfer.</span>
+                    <span>PEAK DRAW: 3.5 kW // 240V</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. PRECISION CONTROLS: CUSTOM BOWL CONFIGURATOR -->
+    <section class="py-28 px-6 bg-black">
+        <div class="max-w-5xl mx-auto">
+            <div class="mb-12">
+                <p class="text-xs uppercase tracking-widest text-sky-400 font-semibold mb-2">Precision Controls</p>
+                <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white">Dial in every bowl.</h2>
+                <p class="text-neutral-400 text-lg mt-3 max-w-xl">
+                    Customize broth base, protein cut, and steam aperture profile on the kiosk touchscreen or mobile app.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 bg-[#111113] border border-white/10 rounded-[32px] p-8 md:p-10">
+                <div class="lg:col-span-7 space-y-7">
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-3">Broth Base</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button class="broth-opt active bg-white/15 text-white border border-white/40 p-4 rounded-2xl text-left transition-all cursor-pointer" data-broth="Tonkotsu" data-price="12.50" data-time="90" data-cals="580" data-protein="28">
+                                <div class="text-sm font-semibold">Tonkotsu</div>
+                                <div class="text-xs text-neutral-400 mt-1">$12.50 • 90s</div>
+                            </button>
+                            <button class="broth-opt bg-black/60 text-neutral-400 border border-white/10 p-4 rounded-2xl text-left hover:text-white transition-all cursor-pointer" data-broth="Miso Dashi" data-price="11.50" data-time="85" data-cals="490" data-protein="22">
+                                <div class="text-sm font-semibold">Miso Dashi</div>
+                                <div class="text-xs text-neutral-400 mt-1">$11.50 • 85s</div>
+                            </button>
+                            <button class="broth-opt bg-black/60 text-neutral-400 border border-white/10 p-4 rounded-2xl text-left hover:text-white transition-all cursor-pointer" data-broth="Spicy Sichuan" data-price="12.00" data-time="95" data-cals="530" data-protein="24">
+                                <div class="text-sm font-semibold">Sichuan</div>
+                                <div class="text-xs text-neutral-400 mt-1">$12.00 • 95s</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-3">Protein Cut</label>
+                        <div class="grid grid-cols-3 gap-3">
+                            <button class="protein-opt active bg-white/15 text-white border border-white/40 p-4 rounded-2xl text-left transition-all cursor-pointer" data-protein-name="Chashu Pork" data-add-price="0.00" data-add-time="0" data-add-cals="180" data-add-protein="16">
+                                <div class="text-sm font-semibold">Chashu Pork</div>
+                                <div class="text-xs text-neutral-400 mt-1">Included</div>
+                            </button>
+                            <button class="protein-opt bg-black/60 text-neutral-400 border border-white/10 p-4 rounded-2xl text-left hover:text-white transition-all cursor-pointer" data-protein-name="A5 Wagyu" data-add-price="2.50" data-add-time="10" data-add-cals="220" data-add-protein="22">
+                                <div class="text-sm font-semibold">A5 Wagyu</div>
+                                <div class="text-xs text-neutral-400 mt-1">+$2.50</div>
+                            </button>
+                            <button class="protein-opt bg-black/60 text-neutral-400 border border-white/10 p-4 rounded-2xl text-left hover:text-white transition-all cursor-pointer" data-protein-name="Seared Tofu" data-add-price="-1.00" data-add-time="-5" data-add-cals="90" data-add-protein="12">
+                                <div class="text-sm font-semibold">Seared Tofu</div>
+                                <div class="text-xs text-neutral-400 mt-1">-$1.00</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs uppercase tracking-wider text-neutral-400 font-semibold mb-2">
+                            <span>Chili Oil Infusion</span>
+                            <span id="spice-lvl-display" class="text-white font-mono">Level 2 • Balanced</span>
+                        </div>
+                        <input id="spice-slider" type="range" min="0" max="5" value="2" class="w-full accent-[#0071e3] cursor-pointer">
+                    </div>
+                </div>
+
+                <!-- Live Kiosk Telemetry Readout -->
+                <div class="lg:col-span-5 bg-black border border-white/10 rounded-3xl p-7 flex flex-col justify-between">
+                    <div>
+                        <span class="text-[11px] uppercase tracking-widest text-neutral-500 font-semibold">Kiosk Order Telemetry</span>
+                        <h3 id="bowl-summary-title" class="text-2xl font-semibold text-white mt-2">Tonkotsu + Chashu Pork</h3>
+
+                        <div class="space-y-3.5 mt-6 pt-6 border-t border-white/10 text-sm">
+                            <div class="flex justify-between">
+                                <span class="text-neutral-400">Guest Price</span>
+                                <span id="bowl-price" class="font-mono text-white font-semibold">$12.50</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-neutral-400">Induction Cycle</span>
+                                <span id="bowl-time" class="font-mono text-white">90 sec</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span class="text-neutral-400">Macros</span>
+                                <span id="bowl-cals" class="font-mono text-neutral-300">760 kcal • 44g protein</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button id="test-dispense-btn" class="w-full mt-8 bg-white text-black hover:bg-neutral-200 py-3.5 rounded-full text-sm font-semibold transition-all cursor-pointer">
+                        Simulate Kiosk Dispense
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. COMPARE CONFIGURATIONS (Shoku Labs vs. Shoku Labs Duo) -->
+    <section id="compare" class="py-28 px-6 bg-[#111113] border-t border-white/[0.06]">
+        <div class="max-w-5xl mx-auto">
+            <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white text-center mb-16">
+                Which Shoku Labs is right for your hub?
+            </h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <!-- Shoku Labs Standard -->
+                <div class="bg-black border border-white/10 rounded-[28px] p-8 md:p-10 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-widest text-[#e5a3b0]">Campus &amp; Corporate</span>
+                        <h3 class="text-3xl font-semibold text-white mt-1">Shoku Labs</h3>
+                        <p class="text-sm text-neutral-400 mt-2">Engineered for student unions, tech offices, and residential towers.</p>
+
+                        <ul class="mt-8 space-y-4 text-sm text-neutral-300 border-t border-white/10 pt-6">
+                            <li class="flex justify-between"><span class="text-neutral-500">Footprint</span><span>24 sq. ft. (4' × 6')</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Cold Vault Capacity</span><span>140 Fresh Bowls</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Thermal Engine</span><span>Dual-Zone Induction (3.5 kW)</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Peak Throughput</span><span>40 Meals / Hour</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Finishes</span><span>Burgundy, Glacier, Silver, Black</span></li>
+                        </ul>
+                    </div>
+                    <a href="#deploy" class="mt-8 block text-center bg-[#0071e3] hover:bg-[#0077ed] text-white text-sm font-medium py-3 rounded-full transition-all">
+                        Deploy Shoku Labs
+                    </a>
+                </div>
+
+                <!-- Shoku Labs Duo -->
+                <div class="bg-black border border-white/10 rounded-[28px] p-8 md:p-10 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs font-semibold uppercase tracking-widest text-sky-400">Airports &amp; Transit</span>
+                        <h3 class="text-3xl font-semibold text-white mt-1">Shoku Labs Duo</h3>
+                        <p class="text-sm text-neutral-400 mt-2">Dual-bay robotic dispenser for international concourses, hospitals, and arenas.</p>
+
+                        <ul class="mt-8 space-y-4 text-sm text-neutral-300 border-t border-white/10 pt-6">
+                            <li class="flex justify-between"><span class="text-neutral-500">Footprint</span><span>36 sq. ft. (4.5' × 8')</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Cold Vault Capacity</span><span>280 Fresh Bowls</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Thermal Engine</span><span>Quad-Zone Induction (7.0 kW)</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Peak Throughput</span><span>85 Meals / Hour</span></li>
+                            <li class="flex justify-between"><span class="text-neutral-500">Finishes</span><span>Burgundy, Glacier, Silver, Black</span></li>
+                        </ul>
+                    </div>
+                    <a href="#deploy" class="mt-8 block text-center bg-white/10 hover:bg-white/20 text-white text-sm font-medium py-3 rounded-full transition-all">
+                        Deploy Shoku Labs Duo
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. HOST DEPLOYMENT REQUEST FORM -->
+    <section id="deploy" class="py-28 px-6 bg-black border-t border-white/[0.06]">
+        <div class="max-w-2xl mx-auto text-center mb-12">
+            <p class="text-xs uppercase tracking-widest text-neutral-400 font-semibold mb-2">Turnkey Host Partnership</p>
+            <h2 class="apple-headline text-4xl md:text-6xl font-semibold text-white">Bring Shoku Labs to your hub.</h2>
+            <p class="text-neutral-400 text-base mt-3">
+                Zero upfront capital expenditure. We handle installation, daily restocking, and 24/7 telemetry.
+            </p>
+        </div>
+
+        <form id="kiosk-request-form" class="max-w-xl mx-auto bg-[#111113] border border-white/10 rounded-[28px] p-8 md:p-10 space-y-5">
+            <div>
+                <label class="block text-xs font-medium text-neutral-400 mb-2">Campus or Organization Name</label>
+                <input id="form-org" type="text" required placeholder="e.g. CSUF Titan Student Union" class="w-full bg-black border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#0071e3] transition-colors">
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-neutral-400 mb-2">Estimated Daily Foot Traffic</label>
+                <select id="form-traffic" class="w-full bg-black border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white focus:outline-none focus:border-[#0071e3] transition-colors cursor-pointer">
+                    <option value="500 - 2,000 daily">500 – 2,000 daily visitors</option>
+                    <option value="2,000 - 10,000 daily">2,000 – 10,000 daily visitors</option>
+                    <option value="10,000+ daily">10,000+ daily visitors (High Volume)</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-medium text-neutral-400 mb-2">Work Email</label>
+                <input id="form-email" type="email" required placeholder="facilities@organization.edu" class="w-full bg-black border border-white/15 rounded-xl px-4 py-3.5 text-sm text-white placeholder-neutral-600 focus:outline-none focus:border-[#0071e3] transition-colors">
+            </div>
+
+            <button type="submit" class="w-full bg-[#0071e3] hover:bg-[#0077ed] text-white py-3.5 rounded-full text-sm font-medium transition-all cursor-pointer">
+                Submit Deployment Inquiry
+            </button>
+
+            <p id="form-response-msg" class="text-center text-xs text-emerald-400 font-mono hidden pt-2"></p>
+        </form>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="border-t border-white/10 bg-[#111113] py-10 px-6 text-xs text-neutral-500">
+        <div class="max-w-6xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <span>Copyright © 2026 Shoku Labs Inc. All rights reserved.</span>
+            <span>Autonomous Induction Dining • Fullerton, CA</span>
+        </div>
+    </footer>
+
+    <!-- LIVE HUBS MODAL -->
+    <div id="kiosk-modal" class="fixed inset-0 bg-black/80 backdrop-blur-xl z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-all duration-300 scale-95">
+        <div class="bg-[#1d1d1f] border border-white/15 w-full max-w-lg rounded-[28px] p-8 shadow-2xl relative">
+            <button id="close-kiosk-modal" class="absolute top-6 right-6 w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white flex items-center justify-center text-sm cursor-pointer">✕</button>
+            <h3 class="text-2xl font-semibold text-white">Active Kiosk Hubs</h3>
+            <p class="text-neutral-400 text-sm mt-1 mb-6">Live cold-vault inventory and dual-zone thermal status.</p>
+
+            <div class="space-y-3">
+                <div class="bg-black/60 border border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                    <div>
+                        <div class="font-medium text-white">CSUF Student Union</div>
+                        <div class="text-xs text-neutral-400 mt-0.5">Hub #01 • Burgundy Finish • Open 24/7</div>
+                    </div>
+                    <span class="text-xs bg-emerald-500/15 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 font-medium">Stocked (94%)</span>
+                </div>
+
+                <div class="bg-black/60 border border-white/10 rounded-2xl p-4 flex justify-between items-center">
+                    <div>
+                        <div class="font-medium text-white">Irvine Spectrum Tech Hub</div>
+                        <div class="text-xs text-neutral-400 mt-0.5">Hub #02 • Glacier Finish • Open 24/7</div>
+                    </div>
+                    <span class="text-xs bg-emerald-500/15 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/30 font-medium">Stocked (88%)</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- JAVASCRIPT: GACHA SLOT MACHINE LOGIC -->
     <script>
-        // 1. Lenis Smooth Scroll Engine
-        const lenis = new Lenis();
-        function raf(time) {
-            lenis.raf(time);
-            requestAnimationFrame(raf);
-        }
-        requestAnimationFrame(raf);
-
-        // 2. GSAP Entrance Animations
+        // 1. GSAP Entrance Animations
         gsap.registerPlugin(ScrollTrigger);
-        gsap.from("#hero-title", { opacity: 0, y: 40, duration: 1.1, ease: "power4.out", delay: 0.1 });
-        gsap.from("#hero-sub", { opacity: 0, y: 25, duration: 1.1, ease: "power4.out", delay: 0.3 });
-        gsap.from("#hero-cta", { opacity: 0, y: 20, duration: 1, ease: "power4.out", delay: 0.4 });
+        gsap.from(".hero-stagger", {
+            opacity: 0,
+            y: 28,
+            duration: 1,
+            stagger: 0.12,
+            ease: "power3.out"
+        });
 
-        gsap.utils.toArray('.reveal-card').forEach((card) => {
-            gsap.from(card, {
-                scrollTrigger: {
-                    trigger: card,
-                    start: "top 85%",
-                    once: true
-                },
-                opacity: 0,
-                y: 30,
-                duration: 0.8,
-                ease: "power3.out"
+        // 2. HERO RECURRING VIDEO / GIF HANDLER
+        const heroVideo = document.getElementById("hero-video");
+        const heroGif = document.getElementById("hero-gif");
+        const heroCanvas = document.getElementById("hero-kiosk-canvas");
+        const heroMediaUpload = document.getElementById("hero-media-upload");
+
+        // Auto-detect /static/hero.mp4 or fallback to /static/hero.gif
+        heroVideo.addEventListener("loadeddata", () => {
+            heroVideo.classList.remove("hidden");
+            heroGif.classList.add("hidden");
+            heroCanvas.classList.add("hidden");
+        });
+
+        heroVideo.addEventListener("error", () => {
+            heroGif.src = "/static/hero.gif";
+        });
+
+        heroGif.addEventListener("load", () => {
+            heroGif.classList.remove("hidden");
+            heroVideo.classList.add("hidden");
+            heroCanvas.classList.add("hidden");
+        });
+
+        // Instant local file loader for testing any .mp4, .webm, or .gif in the browser
+        heroMediaUpload.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const objectURL = URL.createObjectURL(file);
+
+            if (file.type === "image/gif") {
+                heroVideo.pause();
+                heroVideo.classList.add("hidden");
+                heroCanvas.classList.add("hidden");
+                heroGif.src = objectURL;
+                heroGif.classList.remove("hidden");
+            } else {
+                heroGif.classList.add("hidden");
+                heroCanvas.classList.add("hidden");
+                heroVideo.src = objectURL;
+                heroVideo.classList.remove("hidden");
+                heroVideo.play();
+            }
+        });
+
+        // 3. Finish Palette Definitions (Burgundy, Glacier, Silver, Black)
+        const finishes = {
+            burgundy: {
+                name: "Burgundy",
+                bodyLight: "#7c2d3e",
+                bodyMid: "#4a1521",
+                bodyDark: "#24080f",
+                rim: "#e5a3b0",
+                led: "#fb7185",
+                glow: "#881337",
+                textClass: "metallic-text-burgundy",
+                eyebrowColor: "#e5a3b0"
+            },
+            glacier: {
+                name: "Glacier",
+                bodyLight: "#93c5fd",
+                bodyMid: "#3b6e8c",
+                bodyDark: "#172c3a",
+                rim: "#e0f2fe",
+                led: "#38bdf8",
+                glow: "#0369a1",
+                textClass: "metallic-text-glacier",
+                eyebrowColor: "#7dd3fc"
+            },
+            silver: {
+                name: "Silver",
+                bodyLight: "#e4e4e7",
+                bodyMid: "#8e8e93",
+                bodyDark: "#3f3f46",
+                rim: "#ffffff",
+                led: "#e4e4e7",
+                glow: "#52525b",
+                textClass: "metallic-text-silver",
+                eyebrowColor: "#d4d4d8"
+            },
+            black: {
+                name: "Black",
+                bodyLight: "#3a3a3c",
+                bodyMid: "#1c1c1e",
+                bodyDark: "#09090b",
+                rim: "#71717a",
+                led: "#a1a1aa",
+                glow: "#27272a",
+                textClass: "metallic-text-black",
+                eyebrowColor: "#a1a1aa"
+            }
+        };
+
+        let activeFinish = "burgundy";
+        let isXrayView = false;
+
+        function drawKioskStudio(canvas, finishKey, xray = false) {
+            if (!canvas || canvas.classList.contains("hidden")) return;
+            const dpr = window.devicePixelRatio || 1;
+            const rect = canvas.getBoundingClientRect();
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+
+            const ctx = canvas.getContext("2d");
+            ctx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = rect.height;
+            const f = finishes[finishKey];
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Studio Floor Reflection
+            const floorGrad = ctx.createRadialGradient(w / 2, h * 0.88, 10, w / 2, h * 0.88, w * 0.38);
+            floorGrad.addColorStop(0, f.glow + "55");
+            floorGrad.addColorStop(1, "rgba(0,0,0,0)");
+            ctx.fillStyle = floorGrad;
+            ctx.fillRect(0, h * 0.65, w, h * 0.35);
+
+            const kw = Math.min(230, w * 0.38);
+            const kh = Math.min(340, h * 0.82);
+            const kx = (w - kw) / 2;
+            const ky = (h - kh) / 2;
+
+            // Main Anodized Unibody Chassis
+            const chassisGrad = ctx.createLinearGradient(kx, ky, kx + kw, ky + kh);
+            chassisGrad.addColorStop(0, f.bodyLight);
+            chassisGrad.addColorStop(0.45, f.bodyMid);
+            chassisGrad.addColorStop(1, f.bodyDark);
+
+            ctx.save();
+            ctx.shadowColor = "rgba(0,0,0,0.85)";
+            ctx.shadowBlur = 40;
+            ctx.shadowOffsetY = 20;
+
+            ctx.fillStyle = xray ? "#0d0d10" : chassisGrad;
+            ctx.beginPath();
+            ctx.roundRect(kx, ky, kw, kh, 26);
+            ctx.fill();
+            ctx.restore();
+
+            // Precision Chamfered Edge Highlight
+            ctx.strokeStyle = f.rim + (xray ? "66" : "99");
+            ctx.lineWidth = 1.5;
+            ctx.beginPath();
+            ctx.roundRect(kx, ky, kw, kh, 26);
+            ctx.stroke();
+
+            if (!xray) {
+                // Ceramic Shield Upper Glass Display
+                const scrX = kx + 20;
+                const scrY = ky + 22;
+                const scrW = kw - 40;
+                const scrH = kh * 0.44;
+
+                ctx.fillStyle = "#060608";
+                ctx.beginPath();
+                ctx.roundRect(scrX, scrY, scrW, scrH, 14);
+                ctx.fill();
+
+                ctx.strokeStyle = "rgba(255,255,255,0.12)";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Minimalist Status Pill on Kiosk Display
+                ctx.fillStyle = "#18181b";
+                ctx.beginPath();
+                ctx.roundRect(w / 2 - 26, scrY + 10, 52, 10, 5);
+                ctx.fill();
+
+                // Display Typography
+                ctx.fillStyle = "#f5f5f7";
+                ctx.font = "600 15px -apple-system, sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText("SHOKU LABS", w / 2, scrY + scrH * 0.48);
+
+                ctx.fillStyle = f.led;
+                ctx.font = "500 10px -apple-system, sans-serif";
+                ctx.fillText("90s Induction Ready", w / 2, scrY + scrH * 0.66);
+
+                // Recessed Induction Dispensing Chamber
+                const bayX = kx + 24;
+                const bayY = ky + kh * 0.54;
+                const bayW = kw - 48;
+                const bayH = kh * 0.32;
+
+                ctx.fillStyle = "#050507";
+                ctx.beginPath();
+                ctx.roundRect(bayX, bayY, bayW, bayH, 14);
+                ctx.fill();
+
+                // Warm Amber Induction Bowl Glow
+                const bowlGlow = ctx.createRadialGradient(w / 2, bayY + bayH * 0.65, 4, w / 2, bayY + bayH * 0.65, 55);
+                bowlGlow.addColorStop(0, "rgba(251, 146, 60, 0.55)");
+                bowlGlow.addColorStop(1, "rgba(0, 0, 0, 0)");
+                ctx.fillStyle = bowlGlow;
+                ctx.fillRect(bayX, bayY, bayW, bayH);
+
+                // Minimalist Ceramic Bowl Silhouette
+                ctx.fillStyle = "#1c1c1e";
+                ctx.beginPath();
+                ctx.ellipse(w / 2, bayY + bayH * 0.72, 32, 11, 0, 0, Math.PI);
+                ctx.fill();
+                ctx.strokeStyle = f.led;
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.ellipse(w / 2, bayY + bayH * 0.72, 32, 4, 0, 0, Math.PI * 2);
+                ctx.stroke();
+            } else {
+                // X-RAY INTERNAL CUTAWAY ARCHITECTURE
+                ctx.strokeStyle = "rgba(255,255,255,0.14)";
+                ctx.setLineDash([4, 4]);
+                ctx.strokeRect(kx + 18, ky + 20, kw - 36, kh - 40);
+                ctx.setLineDash([]);
+
+                // Module 1: 36°F Cold Vault
+                ctx.fillStyle = "rgba(56, 189, 248, 0.14)";
+                ctx.strokeStyle = "#38bdf8";
+                ctx.lineWidth = 1.2;
+                ctx.beginPath();
+                ctx.roundRect(kx + 24, ky + 28, kw - 48, kh * 0.25, 10);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = "#bae6fd";
+                ctx.font = "600 11px monospace";
+                ctx.textAlign = "center";
+                ctx.fillText("36°F COLD VAULT (140 BOWLS)", w / 2, ky + 28 + kh * 0.14);
+
+                // Module 2: 6-Axis Robotic Arm
+                ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
+                ctx.strokeStyle = "#a1a1aa";
+                ctx.beginPath();
+                ctx.roundRect(kx + 24, ky + 36 + kh * 0.25, kw - 48, kh * 0.22, 10);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = "#f5f5f7";
+                ctx.fillText("6-AXIS PICK & PLACE ARM", w / 2, ky + 36 + kh * 0.37);
+
+                // Module 3: Dual-Zone Induction Coils
+                ctx.fillStyle = "rgba(244, 63, 94, 0.16)";
+                ctx.strokeStyle = "#fb7185";
+                ctx.beginPath();
+                ctx.roundRect(kx + 24, ky + 44 + kh * 0.47, kw - 48, kh * 0.28, 10);
+                ctx.fill();
+                ctx.stroke();
+                ctx.fillStyle = "#fecdd3";
+                ctx.fillText("DUAL-ZONE INDUCTION (3.5kW)", w / 2, ky + 44 + kh * 0.62);
+            }
+        }
+
+        const closerCanvas = document.getElementById("closer-look-canvas");
+
+        function renderAllCanvases() {
+            drawKioskStudio(heroCanvas, activeFinish, false);
+            drawKioskStudio(closerCanvas, activeFinish, isXrayView);
+        }
+        renderAllCanvases();
+        window.addEventListener("resize", renderAllCanvases);
+
+        // 4. Finish Switcher Interaction
+        document.querySelectorAll(".finish-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".finish-btn").forEach(b => b.classList.remove("active"));
+                btn.classList.add("active");
+
+                activeFinish = btn.dataset.finish;
+                const f = finishes[activeFinish];
+
+                document.getElementById("finish-label").innerHTML = `Shoku Labs in <span class="text-white font-semibold">${f.name}</span>`;
+                document.getElementById("hero-ambient-glow").style.background = f.glow;
+                document.getElementById("hero-eyebrow").style.color = f.eyebrowColor;
+
+                const heroHeadline = document.getElementById("hero-headline");
+                heroHeadline.className = `hero-stagger apple-headline text-5xl sm:text-7xl md:text-[84px] font-semibold ${f.textClass}`;
+
+                renderAllCanvases();
             });
         });
 
-        // 3. GACHA SLOT MACHINE ENGINE
-        const reelsData = {
-            broth: [
-                { name: "Tonkotsu Pork", emoji: "🍜", price: 12.00, time: 90, rarity: "COMMON" },
-                { name: "Miso Dashi", emoji: "🥣", price: 11.00, time: 85, rarity: "COMMON" },
-                { name: "Spicy Sichuan", emoji: "🌶️", price: 12.50, time: 95, rarity: "RARE" },
-                { name: "Truffle Dashi", emoji: "🍄", price: 15.00, time: 100, rarity: "LEGENDARY" }
-            ],
-            protein: [
-                { name: "Chashu Pork", emoji: "🥩", price: 1.50, time: 0, rarity: "COMMON" },
-                { name: "Seared Tofu", emoji: "🧊", price: 0.00, time: 0, rarity: "COMMON" },
-                { name: "A5 Wagyu Beef", emoji: "🍖", price: 4.50, time: 10, rarity: "RARE" },
-                { name: "Butter Lobster", emoji: "🦞", price: 6.50, time: 15, rarity: "LEGENDARY" }
-            ],
-            bonus: [
-                { name: "Ajitama Egg", emoji: "🥚", price: 1.50, rarity: "COMMON" },
-                { name: "Chili Oil Drop", emoji: "🔥", price: 0.50, rarity: "COMMON" },
-                { name: "Free Boba Tea", emoji: "🧋", price: 0.00, rarity: "RARE" },
-                { name: "50% OFF VOUCHER", emoji: "🌟", price: -6.00, rarity: "LEGENDARY" }
-            ]
-        };
+        // Exterior vs X-Ray Toggle
+        const extBtn = document.getElementById("view-exterior-btn");
+        const xrayBtn = document.getElementById("view-xray-btn");
 
-        const spinBtn = document.getElementById('spin-btn');
-        const box = document.getElementById('slot-machine-box');
-
-        const reel1Icon = document.getElementById('reel-1-icon');
-        const reel1Name = document.getElementById('reel-1-name');
-        const reel1Tag = document.getElementById('reel-1-tag');
-
-        const reel2Icon = document.getElementById('reel-2-icon');
-        const reel2Name = document.getElementById('reel-2-name');
-        const reel2Tag = document.getElementById('reel-2-tag');
-
-        const reel3Icon = document.getElementById('reel-3-icon');
-        const reel3Name = document.getElementById('reel-3-name');
-        const reel3Tag = document.getElementById('reel-3-tag');
-
-        let isSpinning = false;
-
-        function getTagStyle(rarity) {
-            if (rarity === 'LEGENDARY') return 'text-amber-400 bg-amber-950/80 border-amber-500/50';
-            if (rarity === 'RARE') return 'text-blue-400 bg-blue-950/80 border-blue-500/50';
-            return 'text-emerald-400 bg-emerald-950/80 border-emerald-800/50';
-        }
-
-        spinBtn.addEventListener('click', () => {
-            if (isSpinning) return;
-            isSpinning = true;
-            spinBtn.disabled = true;
-            spinBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            box.classList.remove('jackpot-glow');
-
-            // Apply blur during spin
-            [reel1Icon, reel2Icon, reel3Icon].forEach(el => el.classList.add('reel-blur'));
-
-            // Rapid shuffle timer
-            let ticks = 0;
-            const shuffleInterval = setInterval(() => {
-                ticks++;
-                const bRand = reelsData.broth[Math.floor(Math.random() * reelsData.broth.length)];
-                const pRand = reelsData.protein[Math.floor(Math.random() * reelsData.protein.length)];
-                const xRand = reelsData.bonus[Math.floor(Math.random() * reelsData.bonus.length)];
-
-                reel1Icon.innerText = bRand.emoji;
-                reel2Icon.innerText = pRand.emoji;
-                reel3Icon.innerText = xRand.emoji;
-            }, 60);
-
-            // Final Result Resolution
-            setTimeout(() => {
-                clearInterval(shuffleInterval);
-
-                const finalBroth = reelsData.broth[Math.floor(Math.random() * reelsData.broth.length)];
-                const finalProtein = reelsData.protein[Math.floor(Math.random() * reelsData.protein.length)];
-                const finalBonus = reelsData.bonus[Math.floor(Math.random() * reelsData.bonus.length)];
-
-                // Update Reel 1
-                reel1Icon.innerText = finalBroth.emoji;
-                reel1Name.innerText = finalBroth.name;
-                reel1Tag.innerText = finalBroth.rarity;
-                reel1Tag.className = `text-[10px] px-2 py-0.5 rounded-full mt-2 font-mono border ${getTagStyle(finalBroth.rarity)}`;
-                reel1Icon.classList.remove('reel-blur');
-
-                // Update Reel 2
-                setTimeout(() => {
-                    reel2Icon.innerText = finalProtein.emoji;
-                    reel2Name.innerText = finalProtein.name;
-                    reel2Tag.innerText = finalProtein.rarity;
-                    reel2Tag.className = `text-[10px] px-2 py-0.5 rounded-full mt-2 font-mono border ${getTagStyle(finalProtein.rarity)}`;
-                    reel2Icon.classList.remove('reel-blur');
-                }, 200);
-
-                // Update Reel 3 & Totals
-                setTimeout(() => {
-                    reel3Icon.innerText = finalBonus.emoji;
-                    reel3Name.innerText = finalBonus.name;
-                    reel3Tag.innerText = finalBonus.rarity;
-                    reel3Tag.className = `text-[10px] px-2 py-0.5 rounded-full mt-2 font-mono border ${getTagStyle(finalBonus.rarity)}`;
-                    reel3Icon.classList.remove('reel-blur');
-
-                    // Compute price & stats
-                    const totalPrice = Math.max(5.00, finalBroth.price + finalProtein.price + finalBonus.price).toFixed(2);
-                    const totalTime = finalBroth.time + finalProtein.time;
-
-                    document.getElementById('gacha-combo-title').innerText = `${finalBroth.name.split(' ')[0]} + ${finalProtein.name} Bowl`;
-                    document.getElementById('gacha-price').innerText = `$${totalPrice}`;
-                    document.getElementById('gacha-time').innerText = `${totalTime}s`;
-
-                    // Rarity Check / Jackpot Trigger
-                    const isLegendary = (finalBroth.rarity === 'LEGENDARY' || finalProtein.rarity === 'LEGENDARY' || finalBonus.rarity === 'LEGENDARY');
-                    const isTriple = (finalBroth.rarity === finalProtein.rarity && finalProtein.rarity === finalBonus.rarity);
-
-                    if (isLegendary || isTriple) {
-                        document.getElementById('gacha-rarity-tier').innerText = '🌟 LEGENDARY JACKPOT!';
-                        box.classList.add('jackpot-glow');
-                        
-                        // Fire Confetti
-                        confetti({
-                            particleCount: 100,
-                            spread: 70,
-                            origin: { y: 0.6 }
-                        });
-                    } else {
-                        document.getElementById('gacha-rarity-tier').innerText = 'STANDARD ROLL';
-                    }
-
-                    isSpinning = false;
-                    spinBtn.disabled = false;
-                    spinBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                }, 400);
-
-            }, 1200);
+        extBtn.addEventListener("click", () => {
+            isXrayView = false;
+            extBtn.className = "px-4 py-1.5 rounded-full text-xs font-medium bg-white text-black transition-all cursor-pointer";
+            xrayBtn.className = "px-4 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white transition-all cursor-pointer";
+            renderAllCanvases();
         });
 
-        // 4. 90-Second Heating Simulator Logic
-        const startBtn = document.getElementById('start-sim-btn');
-        const brothBar = document.getElementById('broth-bar');
-        const proteinBar = document.getElementById('protein-bar');
-        const brothTemp = document.getElementById('broth-temp');
-        const proteinTemp = document.getElementById('protein-temp');
-        const simStatus = document.getElementById('sim-status');
+        xrayBtn.addEventListener("click", () => {
+            isXrayView = true;
+            xrayBtn.className = "px-4 py-1.5 rounded-full text-xs font-medium bg-white text-black transition-all cursor-pointer";
+            extBtn.className = "px-4 py-1.5 rounded-full text-xs font-medium text-neutral-400 hover:text-white transition-all cursor-pointer";
+            renderAllCanvases();
+        });
+
+        // 5. Highlights Carousel Controls
+        const track = document.getElementById("highlights-track");
+        document.getElementById("hl-next").addEventListener("click", () => {
+            track.scrollBy({ left: 520, behavior: "smooth" });
+        });
+        document.getElementById("hl-prev").addEventListener("click", () => {
+            track.scrollBy({ left: -520, behavior: "smooth" });
+        });
+
+        // 6. Expandable '+' Spec Pills
+        function toggleSpecPill(card) {
+            const body = card.querySelector(".pill-body");
+            const icon = card.querySelector(".pill-icon");
+            const isHidden = body.classList.contains("hidden");
+            body.classList.toggle("hidden");
+            icon.style.transform = isHidden ? "rotate(45deg)" : "rotate(0deg)";
+        }
+
+        // 7. 90-Second Thermal Cycle Simulator
+        const startBtn = document.getElementById("start-sim-btn");
+        const brothBar = document.getElementById("broth-bar");
+        const proteinBar = document.getElementById("protein-bar");
+        const brothTemp = document.getElementById("broth-temp");
+        const proteinTemp = document.getElementById("protein-temp");
+        const simStatus = document.getElementById("sim-status");
         let isRunning = false;
 
-        startBtn.addEventListener('click', () => {
+        startBtn.addEventListener("click", () => {
             if (isRunning) return;
             isRunning = true;
             startBtn.disabled = true;
-            startBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            simStatus.innerText = "Status: Induction coils active. Dual-zone heating in progress...";
-            simStatus.classList.add('text-amber-600');
+            startBtn.classList.add("opacity-50", "cursor-not-allowed");
+            simStatus.innerText = "ACTIVE — Dual-zone induction coils energized...";
+            simStatus.classList.add("text-white");
 
             let seconds = 0;
             const interval = setInterval(() => {
@@ -473,70 +990,138 @@
                 brothBar.style.width = `${progress}%`;
                 proteinBar.style.width = `${progress}%`;
 
-                const currentBrothTemp = Math.min(195, Math.floor(72 + (123 * (seconds / 90))));
-                const currentProteinTemp = Math.min(165, Math.floor(72 + (93 * (seconds / 90))));
-                brothTemp.innerText = `${currentBrothTemp}°F`;
-                proteinTemp.innerText = `${currentProteinTemp}°F`;
+                brothTemp.innerText = `${Math.min(195, Math.floor(38 + (157 * (seconds / 90))))}°F`;
+                proteinTemp.innerText = `${Math.min(165, Math.floor(38 + (127 * (seconds / 90))))}°F`;
 
                 if (seconds >= 90) {
                     clearInterval(interval);
-                    simStatus.innerText = "Status: Complete! Meal dispensed at optimal temperature (90s).";
-                    startBtn.innerText = "Re-Run Test";
+                    simStatus.innerText = "COMPLETE — Bowl dispensed at 195°F broth / 165°F protein (90.0s).";
+                    startBtn.innerText = "Run Cycle Again";
                     startBtn.disabled = false;
-                    startBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    startBtn.classList.remove("opacity-50", "cursor-not-allowed");
                     isRunning = false;
                 }
             }, 30);
         });
 
-        // 5. Host Lead Form Submission
-        const leadForm = document.getElementById('kiosk-request-form');
-        const msgDisplay = document.getElementById('form-response-msg');
+        // 8. Custom Bowl Configurator
+        let bowlState = {
+            broth: "Tonkotsu", basePrice: 12.50, baseTime: 90, baseCals: 580, baseProtein: 28,
+            protein: "Chashu Pork", addPrice: 0, addTime: 0, addCals: 180, addProtein: 16
+        };
 
-        leadForm.addEventListener('submit', async (e) => {
+        function updateBowlUI() {
+            const total = (bowlState.basePrice + bowlState.addPrice).toFixed(2);
+            const time = bowlState.baseTime + bowlState.addTime;
+            const cals = bowlState.baseCals + bowlState.addCals;
+            const prot = bowlState.baseProtein + bowlState.addProtein;
+
+            document.getElementById("bowl-summary-title").innerText = `${bowlState.broth} + ${bowlState.protein}`;
+            document.getElementById("bowl-price").innerText = `$${total}`;
+            document.getElementById("bowl-time").innerText = `${time} sec`;
+            document.getElementById("bowl-cals").innerText = `${cals} kcal • ${prot}g protein`;
+        }
+
+        document.querySelectorAll(".broth-opt").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".broth-opt").forEach(b => {
+                    b.classList.remove("active", "bg-white/15", "text-white", "border-white/40");
+                    b.classList.add("bg-black/60", "text-neutral-400", "border-white/10");
+                });
+                btn.classList.add("active", "bg-white/15", "text-white", "border-white/40");
+                btn.classList.remove("bg-black/60", "text-neutral-400", "border-white/10");
+
+                bowlState.broth = btn.dataset.broth;
+                bowlState.basePrice = parseFloat(btn.dataset.price);
+                bowlState.baseTime = parseInt(btn.dataset.time);
+                bowlState.baseCals = parseInt(btn.dataset.cals);
+                bowlState.baseProtein = parseInt(btn.dataset.protein);
+                updateBowlUI();
+            });
+        });
+
+        document.querySelectorAll(".protein-opt").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".protein-opt").forEach(b => {
+                    b.classList.remove("active", "bg-white/15", "text-white", "border-white/40");
+                    b.classList.add("bg-black/60", "text-neutral-400", "border-white/10");
+                });
+                btn.classList.add("active", "bg-white/15", "text-white", "border-white/40");
+                btn.classList.remove("bg-black/60", "text-neutral-400", "border-white/10");
+
+                bowlState.protein = btn.dataset.proteinName;
+                bowlState.addPrice = parseFloat(btn.dataset.addPrice);
+                bowlState.addTime = parseInt(btn.dataset.addTime);
+                bowlState.addCals = parseInt(btn.dataset.addCals);
+                bowlState.addProtein = parseInt(btn.dataset.addProtein);
+                updateBowlUI();
+            });
+        });
+
+        const spiceLabels = ["Level 0 • Zero Chili", "Level 1 • Subtle", "Level 2 • Balanced", "Level 3 • Bold", "Level 4 • Extra Hot", "Level 5 • Sichuan Max"];
+        document.getElementById("spice-slider").addEventListener("input", (e) => {
+            document.getElementById("spice-lvl-display").innerText = spiceLabels[e.target.value];
+        });
+
+        const testDispenseBtn = document.getElementById("test-dispense-btn");
+        testDispenseBtn.addEventListener("click", () => {
+            testDispenseBtn.innerText = "Transferring to Induction Bay...";
+            setTimeout(() => {
+                testDispenseBtn.innerText = "Dispensed in 90s ✓";
+                setTimeout(() => {
+                    testDispenseBtn.innerText = "Simulate Kiosk Dispense";
+                }, 2500);
+            }, 1200);
+        });
+
+        // 9. Host Lead Form Submission
+        const leadForm = document.getElementById("kiosk-request-form");
+        const msgDisplay = document.getElementById("form-response-msg");
+
+        leadForm.addEventListener("submit", async (e) => {
             e.preventDefault();
             const payload = {
-                organization: document.getElementById('form-org').value,
-                traffic: document.getElementById('form-traffic').value,
-                email: document.getElementById('form-email').value
+                organization: document.getElementById("form-org").value,
+                traffic: document.getElementById("form-traffic").value,
+                email: document.getElementById("form-email").value
             };
 
             try {
-                const res = await fetch('/api/request-kiosk', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                const res = await fetch("/api/request-kiosk", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
                 });
                 const result = await res.json();
                 msgDisplay.innerText = result.message;
-                msgDisplay.classList.remove('hidden');
+                msgDisplay.classList.remove("hidden");
                 leadForm.reset();
-                setTimeout(() => msgDisplay.classList.add('hidden'), 6000);
+                setTimeout(() => msgDisplay.classList.add("hidden"), 6000);
             } catch (err) {
                 msgDisplay.innerText = "Error submitting request. Please try again.";
-                msgDisplay.classList.remove('hidden');
+                msgDisplay.classList.remove("hidden");
             }
         });
 
-        // 6. Location Modal Logic
-        const openModalBtn = document.getElementById('open-kiosk-modal');
-        const closeModalBtn = document.getElementById('close-kiosk-modal');
-        const kioskModal = document.getElementById('kiosk-modal');
+        // 10. Live Hubs Modal
+        const openModalBtn = document.getElementById("open-kiosk-modal");
+        const closeModalBtn = document.getElementById("close-kiosk-modal");
+        const kioskModal = document.getElementById("kiosk-modal");
 
-        openModalBtn.addEventListener('click', () => {
-            kioskModal.classList.remove('opacity-0', 'pointer-events-none', 'scale-95');
-            kioskModal.classList.add('scale-100');
+        openModalBtn.addEventListener("click", () => {
+            kioskModal.classList.remove("opacity-0", "pointer-events-none", "scale-95");
+            kioskModal.classList.add("scale-100");
         });
 
-        closeModalBtn.addEventListener('click', () => {
-            kioskModal.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
-            kioskModal.classList.remove('scale-100');
+        closeModalBtn.addEventListener("click", () => {
+            kioskModal.classList.add("opacity-0", "pointer-events-none", "scale-95");
+            kioskModal.classList.remove("scale-100");
         });
 
-        kioskModal.addEventListener('click', (e) => {
+        kioskModal.addEventListener("click", (e) => {
             if (e.target === kioskModal) {
-                kioskModal.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
-                kioskModal.classList.remove('scale-100');
+                kioskModal.classList.add("opacity-0", "pointer-events-none", "scale-95");
+                kioskModal.classList.remove("scale-100");
             }
         });
     </script>
